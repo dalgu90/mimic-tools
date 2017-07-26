@@ -1,0 +1,1 @@
+These lists have been manually computed by gathering information on internet from various sources.
