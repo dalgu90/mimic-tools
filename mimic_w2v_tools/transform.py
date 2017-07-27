@@ -2,6 +2,7 @@ import logging
 import os
 import random
 import re
+import progressbar
 
 from joblib import Parallel, delayed
 
@@ -1063,38 +1064,69 @@ def replace_placeholders(corpus_path, output_path, list_path):
     logging.info("Creating mapper")
     mapper = PlaceholderMapper(list_sub)
 
-    logging.info("Replacing placeholders. This can take a long time...")
+    logging.info("Computing number of files to process")
+
+    nb_files = 0
+
     for root, dirs, files in os.walk(os.path.abspath(corpus_path)):
         for filename in files:
-            if re.match(".*\.txt", filename):
+            if re.match("^.*\.txt$", filename):
+                nb_files += 1
 
-                source_file = os.path.join(root, filename)
-                subdir = remove_abs(re.sub(os.path.abspath(corpus_path), "", root))
+    pbar = progressbar.ProgressBar(
+        max_value=nb_files,
+        widgets=[
+            progressbar.Percentage(),
+            ' (', progressbar.SimpleProgress(), ') ',
+            progressbar.Bar(),
+            ' ', progressbar.Timer(), ' ',
+            progressbar.AdaptiveETA()
+        ]
+    )
 
-                target_path = os.path.join(os.path.abspath(document_output_path), subdir)
-                target_file = os.path.join(target_path, filename)
+    processed = 0
 
-                ensure_dir(target_path)
+    logging.info("Replacing placeholders. This can take a long time...")
 
-                content = open(source_file, "r", encoding="UTF-8").read()
-                content_modified = ''
+    with pbar as bar:
+        for root, dirs, files in os.walk(os.path.abspath(corpus_path)):
+            for filename in files:
+                if re.match(".*\.txt", filename):
 
-                start = 0
+                    source_file = os.path.join(root, filename)
+                    subdir = remove_abs(re.sub(os.path.abspath(corpus_path), "", root))
 
-                for mo in re.finditer("\[\*\*[^\[]*\*\*\]", content):
+                    target_path = os.path.join(os.path.abspath(document_output_path), subdir)
+                    target_file = os.path.join(target_path, filename)
 
-                    replacement = mapper.get_mapping(mo.group(0))
+                    ensure_dir(target_path)
 
-                    content_modified += content[start: mo.start()]
-                    content_modified += replacement
+                    content = open(source_file, "r", encoding="UTF-8").read()
+                    content_modified = ''
 
-                    start = mo.end()
+                    start = 0
 
-                if start < len(content):
-                    content_modified += content[start: len(content)]
+                    for mo in re.finditer("\[\*\*[^\[]*\*\*\]", content):
 
-                with open(target_file, "w", encoding="UTF-8") as output_file:
-                    output_file.write(content_modified)
+                        replacement = mapper.get_mapping(mo.group(0))
+
+                        content_modified += content[start: mo.start()]
+                        content_modified += replacement
+
+                        start = mo.end()
+
+                    if start < len(content):
+                        content_modified += content[start: len(content)]
+
+                    with open(target_file, "w", encoding="UTF-8") as output_file:
+                        output_file.write(content_modified)
+
+                    processed += 1
+                    bar.update(processed)
+                    if processed % 1000 == 0 or processed == nb_files:
+                        logging.info("Processed: {}/{} ({}%)".format(
+                            processed, nb_files, round(float(processed/nb_files) * 100, 2)
+                        ))
 
     logging.info("Done !")
 
