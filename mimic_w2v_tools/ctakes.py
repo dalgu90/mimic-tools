@@ -23,9 +23,6 @@ def ctakes_corpus(corpus_path, working_dir, ctakes_server_location):
     document_output_path = os.path.join(os.path.abspath(working_dir), "documents")
     ensure_dir(document_output_path)
 
-    # New 'requests' session
-    s = requests.Session()
-
     nb_files = 0
 
     for root, dirs, files in os.walk(os.path.abspath(corpus_path)):
@@ -66,7 +63,7 @@ def ctakes_corpus(corpus_path, working_dir, ctakes_server_location):
                 logging.info("Processing {}/{} ({} chars)".format(subdir, filename, len(txt_content)))
 
                 # Sending file to cTAKES server
-                r = s.post(ctakes_server_location, data=txt_content.encode("UTF-8"), timeout=None)
+                r = requests.post(ctakes_server_location, data=txt_content.encode("UTF-8"), timeout=None)
 
                 logging.debug("* Status: {}".format(r.status_code))
 
