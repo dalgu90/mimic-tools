@@ -3,6 +3,7 @@ import logging
 import os
 import re
 import subprocess
+import progressbar
 
 import requests
 
@@ -25,35 +26,58 @@ def ctakes_corpus(corpus_path, working_dir, ctakes_server_location):
     # New 'requests' session
     s = requests.Session()
 
-    # Going trough the files
+    nb_files = 0
+
     for root, dirs, files in os.walk(os.path.abspath(corpus_path)):
-        for filename in files:
+        for _ in files:
+            nb_files += 1
 
-            # Creating target subdirectory according to source subdirectory
-            subdir = remove_abs(re.sub(os.path.abspath(corpus_path), "", root))
-            target_dir = os.path.join(os.path.abspath(document_output_path), subdir)
+    pbar = progressbar.ProgressBar(
+        max_value=nb_files,
+        widgets=[
+            progressbar.Percentage(),
+            ' (', progressbar.SimpleProgress(), ') ',
+            progressbar.Bar(),
+            ' ', progressbar.Timer(), ' ',
+            progressbar.AdaptiveETA()
+        ]
+    )
 
-            ensure_dir(target_dir)
+    # Going trough the files
+    track_nb = 0
 
-            # Source and target file path creation
-            source_file = os.path.join(root, filename)
-            target_file = os.path.join(os.path.abspath(target_dir), get_other_extension(filename, "json"))
+    with pbar as bar:
+        for root, dirs, files in os.walk(os.path.abspath(corpus_path)):
+            for filename in files:
 
-            # Reading source file content
-            txt_content = open(source_file, "r", encoding="UTF-8").read()
+                # Creating target subdirectory according to source subdirectory
+                subdir = remove_abs(re.sub(os.path.abspath(corpus_path), "", root))
+                target_dir = os.path.join(os.path.abspath(document_output_path), subdir)
 
-            logging.debug("Processing {}: {}".format(filename, len(txt_content)))
+                ensure_dir(target_dir)
 
-            # Sending file to cTAKES server
-            r = s.post(ctakes_server_location, data=txt_content.encode("UTF-8"), timeout=None)
+                # Source and target file path creation
+                source_file = os.path.join(root, filename)
+                target_file = os.path.join(os.path.abspath(target_dir), get_other_extension(filename, "json"))
 
-            logging.debug("* Status: {}".format(r.status_code))
+                # Reading source file content
+                txt_content = open(source_file, "r", encoding="UTF-8").read()
 
-            # Reading response json content
-            r_content = r.json()
+                logging.info("Processing {}/{} ({} chars)".format(subdir, filename, len(txt_content)))
 
-            # Dumping json response to disk (target file location)
-            json.dump(r_content, open(target_file, "w", encoding="UTF-8"))
+                # Sending file to cTAKES server
+                r = s.post(ctakes_server_location, data=txt_content.encode("UTF-8"), timeout=None)
 
-            # Gzipping file
-            subprocess.call(['gzip', '--best', os.path.basename(target_file)], cwd=target_dir)
+                logging.debug("* Status: {}".format(r.status_code))
+
+                # Reading response json content
+                r_content = r.json()
+
+                # Dumping json response to disk (target file location)
+                json.dump(r_content, open(target_file, "w", encoding="UTF-8"))
+
+                # Gzipping file
+                subprocess.call(['gzip', '--best', os.path.basename(target_file)], cwd=target_dir)
+
+                track_nb += 1
+                bar.update(track_nb)
