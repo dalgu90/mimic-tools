@@ -1,11 +1,9 @@
 import gzip
-import json
 import logging
 import os
 import re
 import shutil
 import subprocess
-from collections import defaultdict
 
 from joblib import Parallel, delayed
 from lxml import etree
@@ -109,23 +107,25 @@ def ctakes_corpus(corpus_path, working_dir, ctakes_dir, java_dir, resources_dir)
     os.remove(target_analysis_engine)
 
 
-def ctakes_to_txt(json_path, txt_path, output_path, n_jobs=1):
+def ctakes_to_txt(xml_path, txt_path, output_path, n_jobs=1):
 
     document_output_path = os.path.join(os.path.abspath(output_path), "documents")
     ensure_dir(document_output_path)
 
+    logging.info("* Compiling processing list")
+
     processing_list = list()
     # Collecting filenames
-    for root, dirs, files in os.walk(os.path.abspath(json_path)):
+    for root, dirs, files in os.walk(os.path.abspath(xml_path)):
         for filename in files:
-            if re.match("^.*\.json.gz$", filename):
-                subdir = remove_abs(re.sub(os.path.abspath(json_path), "", root))
+            if re.match("^.*\.xml.gz$", filename):
+                subdir = remove_abs(re.sub(os.path.abspath(xml_path), "", root))
                 processing_list.append((root, filename, subdir))
 
     logging.info("* Number of files to process: {}".format(len(processing_list)))
 
-    logging.info("Starting preparing documents with {} processes".format(n_jobs))
-    # Cleaning files
+    logging.info("* Starting extraction with {} processes".format(n_jobs))
+
     Parallel(n_jobs=n_jobs)(delayed(_convert_ctakes_file)(root, filename, subdir, os.path.abspath(document_output_path),
                                                           txt_path)
                             for root, filename, subdir in processing_list)
@@ -138,46 +138,130 @@ def _convert_ctakes_file(root, filename, subdir, document_output_path, txt_path)
     target_path = os.path.join(document_output_path, subdir)
     ensure_dir(target_path)
 
-    source_json_filename = os.path.join(root, filename)
+    source_xml_filename = os.path.join(root, filename)
 
     source_txt_filename = os.path.join(txt_path, subdir, "{}.txt".format(filename.split(".")[0]))
     target_txt_filename = os.path.join(target_path, "{}.txt".format(filename.split(".")[0]))
 
-    json_content = json.load(gzip.open(source_json_filename, 'rt'))
-    txt_content = open(source_txt_filename, "r", encoding="UTF-8", newline='').read().encode("UTF-8")
-    sentences = _fetch_sentences(json_content)
+    sentences = extract_sentences(source_txt_filename, source_xml_filename)
 
     with open(target_txt_filename, "w", encoding="UTF-8") as output_file:
-        for sentence in sorted(sentences):
-            sentence_str = " ".join([txt_content[b:e] for b, e in sorted(sentences[sentence])])
+        for sentence in sorted(sentences, key=lambda x: x["begin"]):
+            sentence_str = " ".join([token["text"] for token in sentence["tokens"]])
             output_file.write("{}\n".format(sentence_str))
 
 
-def _fetch_sentences(json_content):
+def extract_sentences(txt_file_path, xml_file_path):
 
-    sentences = defaultdict(list)
+    content_txt = open(os.path.abspath(txt_file_path), "r", encoding="UTF-8").read()
+    content_xml = gzip.open(xml_file_path, 'rt', encoding='UTF-8')
 
-    sentence_type = "org.apache.ctakes.typesystem.type.textspan.Sentence"
+    xml_tree = etree.parse(content_xml)
+    xml_root = xml_tree.getroot()
 
-    entity_types = [
-        'org.apache.ctakes.typesystem.type.syntax.ContractionToken',
-        'org.apache.ctakes.typesystem.type.syntax.NewlineToken',
-        'org.apache.ctakes.typesystem.type.syntax.NumToken',
-        'org.apache.ctakes.typesystem.type.syntax.PunctuationToken',
-        'org.apache.ctakes.typesystem.type.syntax.SymbolToken',
-        'org.apache.ctakes.typesystem.type.syntax.WordToken'
-    ]
+    all_sentences = []
 
-    for ann in json_content:
-        if ann["typ"] == sentence_type:
-            sentences[(ann["annotation"]["begin"], ann["annotation"]["end"])] = list()
+    sentences = xml_root.findall(".//org.apache.ctakes.typesystem.type.textspan.Sentence")
 
-    for ann in json_content:
-        if ann["typ"] in entity_types:
-            t_begin = ann["annotation"]["begin"]
-            t_end = ann["annotation"]["end"]
-            for (b, e), tokens in sentences.items():
-                if b <= t_begin < t_end <= e:
-                    tokens.append((t_begin, t_end))
+    for sentence in sentences:
+        current_sentence = {
+            "begin": int(sentence.get("begin")),
+            "end": int(sentence.get("end")),
+            "tokens": []
+        }
+        all_sentences.append(current_sentence)
 
-    return sentences
+    punct_tokens = xml_root.findall(".//org.apache.ctakes.typesystem.type.syntax.PunctuationToken")
+
+    for item in punct_tokens:
+
+        begin = int(item.get("begin"))
+        end = int(item.get("end"))
+        text = content_txt[int(item.get("begin")): int(item.get("end"))]
+
+        for sentence in all_sentences:
+
+            if sentence["begin"] <= begin < sentence["end"]:
+                sentence["tokens"].append({
+                    "begin": begin,
+                    "end": end,
+                    "text": text,
+                })
+                break
+
+    word_tokens = xml_root.findall(".//org.apache.ctakes.typesystem.type.syntax.WordToken")
+
+    for item in word_tokens:
+
+        begin = int(item.get("begin"))
+        end = int(item.get("end"))
+        text = content_txt[int(item.get("begin")): int(item.get("end"))]
+
+        for sentence in all_sentences:
+
+            if sentence["begin"] <= begin < sentence["end"]:
+                sentence["tokens"].append({
+                    "begin": begin,
+                    "end": end,
+                    "text": text,
+                })
+                break
+
+    symbol_tokens = xml_root.findall(".//org.apache.ctakes.typesystem.type.syntax.SymbolToken")
+
+    for item in symbol_tokens:
+
+        begin = int(item.get("begin"))
+        end = int(item.get("end"))
+        text = content_txt[int(item.get("begin")): int(item.get("end"))]
+
+        for sentence in all_sentences:
+
+            if sentence["begin"] <= begin < sentence["end"]:
+                sentence["tokens"].append({
+                    "begin": begin,
+                    "end": end,
+                    "text": text,
+                })
+                break
+
+    contraction_tokens = xml_root.findall(".//org.apache.ctakes.typesystem.type.syntax.ContractionToken")
+
+    for item in contraction_tokens:
+
+        begin = int(item.get("begin"))
+        end = int(item.get("end"))
+        text = content_txt[int(item.get("begin")): int(item.get("end"))]
+
+        for sentence in all_sentences:
+
+            if sentence["begin"] <= begin < sentence["end"]:
+                sentence["tokens"].append({
+                    "begin": begin,
+                    "end": end,
+                    "text": text,
+                })
+                break
+
+    num_tokens = xml_root.findall(".//org.apache.ctakes.typesystem.type.syntax.NumToken")
+
+    for item in num_tokens:
+
+        begin = int(item.get("begin"))
+        end = int(item.get("end"))
+        text = content_txt[int(item.get("begin")): int(item.get("end"))]
+
+        for sentence in all_sentences:
+
+            if sentence["begin"] <= begin < sentence["end"]:
+                sentence["tokens"].append({
+                    "begin": begin,
+                    "end": end,
+                    "text": text,
+                })
+                break
+
+    for sentence in all_sentences:
+        sentence["tokens"] = sorted(sentence["tokens"], key=lambda x: x["begin"])
+
+    return all_sentences
