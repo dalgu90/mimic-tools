@@ -28,7 +28,7 @@ def regroup_patient_documents(input_raw_dir, output_dir, n_jobs=1):
         ensure_dir(target_dir)
 
         for sub_dirname in os.listdir(os.path.join(input_raw_dir, dirname)):
-            target_file = os.path.join(target_dir, '{}.txt'.format(sub_dirname))
+            target_file = os.path.join(target_dir, '{}'.format(sub_dirname))
             processing_list.append((os.path.join(input_raw_dir, dirname, sub_dirname), target_file))
 
     Parallel(n_jobs=n_jobs)(delayed(_process_patient_documents)(input_raw_dir, target_file)
@@ -43,13 +43,26 @@ def _process_patient_documents(input_dir, target_file):
     :return: nothing
     """
 
+    char_count = 0
+    break_every_n = 100000
+
     for root, dirs, files in os.walk(os.path.abspath(input_dir)):
         for filename in files:
             if re.match('^.*\.txt$', filename):
-                with open(target_file, 'a+', encoding='UTF-8') as output_file:
-                    output_file.write('{}\n\n'.format(
-                        open(os.path.join(root, filename), 'r', encoding='UTF-8').read()
-                    ))
+                with open(os.path.join(root, filename), "r", encoding="UTF-8") as input_file:
+                    for line in input_file:
+
+                        char_count += len(line)
+
+                        document_id = char_count // break_every_n
+
+                        target_filename = "{}-{}.txt".format(
+                            target_file,
+                            document_id
+                        )
+
+                        with open(target_filename, 'a+', encoding='UTF-8') as output_file:
+                            output_file.write(line)
 
 
 class PlaceholderMapper:
@@ -1142,7 +1155,7 @@ def clean_mimic_corpus(corpus_path, output_path, n_jobs=1):
     # 2. Collecting filenames in a multiprocessing way
     # 3. Cleaning files
 
-    processing_list = []
+    processing_list = list()
 
     # Collecting filenames
     for root, dirs, files in os.walk(os.path.abspath(corpus_path)):
