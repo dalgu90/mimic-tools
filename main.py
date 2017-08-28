@@ -7,7 +7,7 @@ from mimic_w2v_tools.ctakes import ctakes_corpus, ctakes_to_txt
 from mimic_w2v_tools.extract import extract_mimic_documents
 from mimic_w2v_tools.tools import ensure_dir
 from mimic_w2v_tools.transform import regroup_patient_documents, replace_placeholders, clean_mimic_corpus
-from mimic_w2v_tools.w2v import prep_w2v
+from mimic_w2v_tools.w2v import prep_w2v, build_model
 
 if __name__ == "__main__":
 
@@ -65,6 +65,24 @@ if __name__ == "__main__":
     parser_prep_w2v.add_argument("--input_dir", help="Input txt directory", dest="input_dir", type=str, required=True)
     parser_prep_w2v.add_argument("--output_dir", help="Output directory", dest="output_dir", type=str, required=True)
     parser_prep_w2v.add_argument("-n", "--n_jobs", help="Number of processes", dest="n_jobs", type=int, default=1,
+                                 required=True)
+
+    # Build one model
+    parser_build_w2v = subparsers.add_parser('BUILD-W2V', help="Build one word2vec model")
+    parser_build_w2v.add_argument("--input_dir", help="Input document directory", dest="input_dir", type=str,
+                                  required=True)
+    parser_build_w2v.add_argument("--output_dir", help="Output directory", dest="output_dir", type=str, required=True)
+
+    parser_build_w2v.add_argument("--size", help="Vector size", dest="size", type=int, default=200)
+    parser_build_w2v.add_argument("--window", help="Window size", dest="window", type=int, default=4)
+    parser_build_w2v.add_argument("--min_count", help="Min count", dest="min_count", type=int, default=8)
+    parser_build_w2v.add_argument("--iterations", help="Number of iterations", dest="iterations", type=int, default=5)
+
+    group_type = parser_build_w2v.add_mutually_exclusive_group(required=True)
+    group_type.add_argument('--skip_gram', action='store_true')
+    group_type.add_argument('--cbow', action='store_true')
+
+    parser_build_w2v.add_argument("-n", "--n_jobs", help="Number of processes", dest="n_jobs", type=int, default=1,
                                  required=True)
 
     args = parser.parse_args()
@@ -195,3 +213,36 @@ if __name__ == "__main__":
         logging.basicConfig(filename=log_file_path, level=logging.INFO, format='%(asctime)s %(message)s')
 
         prep_w2v(args.input_dir, args.output_dir, n_jobs=args.n_jobs)
+
+    elif args.subparser_name == "BUILD-W2V":
+
+        timestamp = time.strftime("%Y%m%d-%H%M%S")
+
+        if args.skip_gram:
+            model_type = "sg"
+            model_type_num = 1
+        else:
+            model_type = "cbow"
+            model_type_num = 0
+
+        # Computing model prefix
+        model_prefix = "{}-s{:04d}-w{:02d}-m{:03d}-i{:02d}".format(
+            model_type,
+            args.size,
+            args.window,
+            args.min_count,
+            args.iterations
+        )
+
+        target_dir = os.path.join(os.path.abspath(args.output_dir), model_prefix)
+
+        if os.path.isdir(target_dir):
+            raise IsADirectoryError("The output path you specified already exists")
+
+        ensure_dir(target_dir)
+
+        log_file_path = os.path.join(os.path.abspath(target_dir), "build-w2v-{}.log".format(timestamp))
+        logging.basicConfig(filename=log_file_path, level=logging.INFO, format='%(asctime)s %(message)s')
+
+        build_model(args.input_dir, target_dir, size=args.size, window=args.window, min_count=args.min_count,
+                    sg=model_type_num, n_jobs=args.n_jobs, iterations=args.iterations)

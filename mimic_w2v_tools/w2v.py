@@ -4,10 +4,71 @@ import random
 import re
 from collections import defaultdict
 
+import gensim
 import joblib
 from joblib import Parallel, delayed
 
 from .tools import ensure_dir, remove_abs
+
+
+class SentenceIterator:
+
+    def __init__(self, corpus_path):
+
+        self.corpus_path = corpus_path
+        self.document_list = list()
+
+        for root, dirs, files in os.walk(os.path.abspath(self.corpus_path)):
+            for filename in files:
+                self.document_list.append(os.path.join(root, filename))
+
+    def __iter__(self):
+
+        random.shuffle(self.document_list)
+
+        for filename in self.document_list:
+            with open(filename, "r", encoding="UTF-8") as input_file:
+                for line in input_file:
+                    if re.match("^$", line):
+                        continue
+
+                    tokens = line.split(" ")
+
+                    yield tokens
+
+
+def build_model(input_directory, output_directory, size=200, window=4, min_count=8, sg=0, n_jobs=1, iterations=5):
+
+    if sg == 0:
+        model_type = "cbow"
+    else:
+        model_type = "sg"
+
+    # Computing model prefix
+    model_prefix = "{}-s{:04d}-w{:02d}-m{:03d}-i{:02d}".format(
+        model_type,
+        size,
+        window,
+        min_count,
+        iterations
+    )
+
+    # # Computing target directory
+    # target_dir = os.path.join(output_directory, model_prefix)
+    # ensure_dir(target_dir)
+
+    # Computing target file path
+    target_model_name = os.path.join(output_directory, '{}.pkl'.format(model_prefix))
+
+    logging.info("Loading files in iterator")
+    sentences = SentenceIterator(input_directory)
+
+    logging.info("Building model")
+    model = gensim.models.Word2Vec(sentences, workers=n_jobs, iter=iterations,
+                                   window=window, size=size, min_count=min_count, sg=sg)
+
+    logging.info("Dumping model to file")
+    model.save(target_model_name)
 
 
 def prep_w2v(input_dir, output_dir, n_jobs=1, ratio_unknown=0.5, lowercase=True, replace_digits=True):
