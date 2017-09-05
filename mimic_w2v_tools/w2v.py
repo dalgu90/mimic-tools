@@ -32,7 +32,7 @@ class SentenceIterator:
                     if re.match("^$", line):
                         continue
 
-                    tokens = line.split(" ")
+                    tokens = line.rstrip("\n").split(" ")
 
                     yield tokens
 
