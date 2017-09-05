@@ -71,9 +71,11 @@ def build_model(input_directory, output_directory, size=200, window=4, min_count
     model.save(target_model_name)
 
 
-def prep_w2v(input_dir, output_dir, n_jobs=1, ratio_unknown=0.5, lowercase=True, replace_digits=True):
+def prep_w2v(input_dir, output_dir, n_jobs=1, use_unknown_token=False, ratio_unknown=0.5, lowercase=True,
+             replace_digits=True):
     """
     Prepare mimic corpus for word2vec model learning
+    :param use_unknown_token:
     :param input_dir: path to the input documents (one sentence per line, tokens separated with spaces)
     :param output_dir: path where output files will be created
     :param n_jobs: number of processes to use
@@ -100,48 +102,50 @@ def prep_w2v(input_dir, output_dir, n_jobs=1, ratio_unknown=0.5, lowercase=True,
                 subdir = remove_abs(re.sub(os.path.abspath(input_dir), "", root))
                 processing_list.append((root, filename, subdir))
 
-    # Fetching token count (map-reduce)
-    all_tokens = defaultdict(int)
+    if use_unknown_token:
+        # Fetching token count (map-reduce)
+        all_tokens = defaultdict(int)
 
-    logging.info("Fetching token count")
+        logging.info("Fetching token count")
 
-    results = Parallel(n_jobs=n_jobs)(delayed(_gather_token_count)(root, filename, lowercase=lowercase,
-                                                                   replace_digits=replace_digits)
-                                      for root, filename, _ in processing_list)
+        results = Parallel(n_jobs=n_jobs)(delayed(_gather_token_count)(root, filename, lowercase=lowercase,
+                                                                       replace_digits=replace_digits)
+                                          for root, filename, _ in processing_list)
 
-    logging.info("Merging list")
+        logging.info("Merging list")
 
-    # Total number of tokens
-    token_nb = 0
+        # Total number of tokens
+        token_nb = 0
 
-    # Combining results
-    for result in results:
-        for k, v in result.items():
-            all_tokens[k] += v
-            token_nb += v
+        # Combining results
+        for result in results:
+            for k, v in result.items():
+                all_tokens[k] += v
+                token_nb += v
 
-    # Assembling singleton list
-    singletons_all = set()
-    singletons_sample = set()
+        # Assembling singleton list
+        singletons_all = set()
+        singletons_sample = set()
 
-    for k, v in all_tokens.items():
-        if v == 1 and not re.search("\d", k):
-            singletons_all.add(k)
-            if random.random() < ratio_unknown:
-                singletons_sample.add(k)
+        for k, v in all_tokens.items():
+            if v == 1 and not re.search("\d", k):
+                singletons_all.add(k)
+                if random.random() < ratio_unknown:
+                    singletons_sample.add(k)
 
-    logging.info("* Number of singletons: {}".format(len(singletons_all)))
-    logging.info("* Number of singletons in the sample ({}): {}".format(ratio_unknown, len(singletons_sample)))
-    logging.info("* Total number of tokens: {}".format(token_nb))
+        logging.info("* Number of singletons: {}".format(len(singletons_all)))
+        logging.info("* Number of singletons in the sample ({}): {}".format(ratio_unknown, len(singletons_sample)))
+        logging.info("* Total number of tokens: {}".format(token_nb))
 
-    logging.info("Dumping singleton list to disk")
-    _ = joblib.dump(singletons_sample, singletons_file_path)
+        logging.info("Dumping singleton list to disk")
+        _ = joblib.dump(singletons_sample, singletons_file_path)
 
     logging.info("Chunking file list")
     file_path_chunks = _chunk_list(processing_list, n_jobs)
 
     logging.info("Starting processing files")
-    Parallel(n_jobs=n_jobs)(delayed(_write_file)(file_path_list, singletons_file_path, document_output_path)
+    Parallel(n_jobs=n_jobs)(delayed(_write_file)(file_path_list, use_unknown_token, singletons_file_path,
+                                                 document_output_path)
                             for file_path_list in file_path_chunks)
 
     logging.info("Done !")
@@ -184,7 +188,8 @@ def _gather_token_count(root, filename, lowercase=True, replace_digits=True):
     return document_tokens
 
 
-def _write_file(file_path_list, singletons_file_path, document_output_path, lowercase=True, replace_digits=True):
+def _write_file(file_path_list, use_unknown_token, singletons_file_path, document_output_path, lowercase=True,
+                replace_digits=True):
     """
     Write file to disk
     :param file_path_list: list of files to process
@@ -195,8 +200,9 @@ def _write_file(file_path_list, singletons_file_path, document_output_path, lowe
     :return: nothing
     """
 
-    # Loading singleton file
-    singletons = joblib.load(os.path.abspath(singletons_file_path))
+    if use_unknown_token:
+        # Loading singleton file
+        singletons = joblib.load(os.path.abspath(singletons_file_path))
 
     for root, filename, subdir in file_path_list:
 
@@ -227,9 +233,10 @@ def _write_file(file_path_list, singletons_file_path, document_output_path, lowe
                         if replace_digits:
                             tok = re.sub("\d", "0", tok)
 
-                        # Replacing token if it is in singleton list
-                        if tok in singletons:
-                            tok = "#unk#"
+                        if use_unknown_token:
+                            # Replacing token if it is in singleton list
+                            if tok in singletons:
+                                tok = "#unk#"
 
                         sent_tokens.append(tok)
 
