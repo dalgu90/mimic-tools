@@ -1,4 +1,4 @@
-# MIMIC data resources
+# MIMIC data resources
 
 This repository regroups resources for [MIMIC data](https://mimic.physionet.org/) corpus processing
 
