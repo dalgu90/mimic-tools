@@ -84,7 +84,7 @@ python ~/mimic-w2v-tools/main.py CTAKES \
     --resources_dir ~/mimic-w2v-tools/resources 
 ```
 
-### 2.6 - Extracted sentences and tokens
+### 2.6 - Extract sentences and tokens
 
 To extract the sentences and tokens from cTAKES files, run the following command:
 
