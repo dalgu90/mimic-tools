@@ -44,7 +44,7 @@ python ~/mimic-w2v-tools/main.py REGROUP \
 ### 2.3 - Pseudonymization
 
 MIMIC documents have been anonymized. In this this step, we replace all placeholders with random data. 
-The different lists of replacement elements that we used are located in the `lists` directory at the root of the
+The different lists of replacement elements are located in the `lists` directory at the root of the
 repository. Further information concerning the origins of the lists is available at this location.
 
 ```bash
@@ -56,12 +56,12 @@ python ~/mimic-w2v-tools/main.py REPLACE \
 
 ### 2.4 - Document cleaning
 
-Documents contain lines with composed of only symbols or with a high proportion of them. Also lines can start with
- tabulations, spaces or other symbols. Sentences are cut with hard line breaks which render them difficult to process
+Documents contain lines which are mostly composed of symbols. Also some lines start with several tabulations, spaces or
+ other symbols. On top of that, sentences are cut with hard line breaks which render them difficult to process
  with NLP tools. In this step, the script will:
     1. Remove lines with a large majority of symbols
     2. Strip symbols at the beginning and at the end of the line
-    3. Remove hard sentence break in paragraphs
+    3. Remove hard sentence breaks in paragraphs
     
 ```bash
 python ~/mimic-w2v-tools/main.py CLEAN \
@@ -73,7 +73,7 @@ python ~/mimic-w2v-tools/main.py CLEAN \
 ### 2.5 - Process documents with cTAKES
 
 To process the documents with [cTAKES](http://ctakes.apache.org/), you must first download and install cTAKES 3.2.2 by 
-downloading and following the instructions on the official website. You must also download Java JDK 1.8+.
+following the instructions on the official website. You must also download Java JDK 1.8+.
 
 ```bash
 python ~/mimic-w2v-tools/main.py CTAKES \
@@ -86,7 +86,7 @@ python ~/mimic-w2v-tools/main.py CTAKES \
 
 ### 2.6 - Extracted sentences and tokens
 
-To extract the sentences and tokens from ctakes files, run the following command:
+To extract the sentences and tokens from cTAKES files, run the following command:
 
 ```bash
 python ~/mimic-w2v-tools/main.py CTAKES-TO-TXT \
