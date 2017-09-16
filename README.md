@@ -1,8 +1,8 @@
-# MIMIC data resources
+# MIMIC data resources
 
 This repository regroups resources for [MIMIC data](https://mimic.physionet.org/) corpus processing
 
-## 1. Requirements
+## 1. Requirements
 * You have cloned the repository
 
  ```bash
