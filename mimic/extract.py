@@ -9,7 +9,8 @@ from .tools import ensure_dir
 
 def extract_mimic_documents(postgres_url, output_path):
     """
-    Extract mimic documents from the database. Create one directory per patient. Create one directory for 2000 patients.
+    Extract mimic documents from the database.
+    Regroup documents according to their categories.
     :param postgres_url: database url where mimic-iii is stored
     :param output_path: path where files will be written
     :return: nothing
