@@ -1,6 +1,7 @@
 import argparse
 import logging
 import os
+import sys
 import time
 
 from mimic.ctakes import ctakes_corpus, ctakes_to_txt
@@ -18,7 +19,7 @@ if __name__ == "__main__":
     # MIMIC document extraction from database
     parser_extract = subparsers.add_parser('EXTRACT', help="Extract MIMIC documents from database")
     parser_extract.add_argument("--url", help="Database URL", dest="url", type=str, required=True)
-    parser_extract.add_argument("--output_dir", help="Output directory", dest="output_dir", type=str, required=True)
+    parser_extract.add_argument("--output-dir", help="Output directory", dest="output_dir", type=str, required=True)
 
     # MIMIC document regrouping (one per patient)
     parser_regroup = subparsers.add_parser('REGROUP', help="Create one document per patient")
@@ -61,8 +62,6 @@ if __name__ == "__main__":
 
     if args.subparser_name == "EXTRACT":
 
-        timestamp = time.strftime("%Y%m%d-%H%M%S")
-
         target_dir = os.path.join(os.path.abspath(args.output_dir))
 
         if os.path.isdir(target_dir):
@@ -70,12 +69,11 @@ if __name__ == "__main__":
 
         ensure_dir(target_dir)
 
-        log_file_path = os.path.join(target_dir, "extraction-{}.log".format(timestamp))
-        logging.basicConfig(filename=log_file_path, level=logging.INFO, format='%(asctime)s %(message)s')
+        logging.basicConfig(stream=sys.stdout, level=logging.INFO, format='%(asctime)s %(message)s')
 
         logging.info("Starting document extraction from mimic-iii database")
 
-        extract_mimic_documents(args.url, args.output_dir)
+        extract_mimic_documents(args.url, target_dir)
 
     elif args.subparser_name == "REGROUP":
 
