@@ -21,13 +21,6 @@ if __name__ == "__main__":
     parser_extract.add_argument("--url", help="Database URL", dest="url", type=str, required=True)
     parser_extract.add_argument("--output-dir", help="Output directory", dest="output_dir", type=str, required=True)
 
-    # MIMIC document regrouping (one per patient)
-    parser_regroup = subparsers.add_parser('REGROUP', help="Create one document per patient")
-    parser_regroup.add_argument("--input_dir", help="Input directory", dest="input_dir", type=str, required=True)
-    parser_regroup.add_argument("--output_dir", help="Output directory", dest="output_dir", type=str, required=True)
-    parser_regroup.add_argument("-n", "--n_jobs", help="Number of processes", dest="n_jobs", type=int, default=1,
-                                required=True)
-
     # MIMIC placeholders replacement
     parser_replace = subparsers.add_parser('REPLACE', help="Perform pseudonymization of the documents")
     parser_replace.add_argument("--input_dir", help="Input directory", dest="input_dir", type=str, required=True)
@@ -74,24 +67,6 @@ if __name__ == "__main__":
         logging.info("Starting document extraction from mimic-iii database")
 
         extract_mimic_documents(args.url, target_dir)
-
-    elif args.subparser_name == "REGROUP":
-
-        timestamp = time.strftime("%Y%m%d-%H%M%S")
-
-        target_dir = os.path.join(os.path.abspath(args.output_dir))
-
-        if os.path.isdir(target_dir):
-            raise IsADirectoryError("The output path you specified already exists")
-
-        ensure_dir(os.path.abspath(args.output_dir))
-
-        log_file_path = os.path.join(os.path.abspath(args.output_dir), "extraction-{}.log".format(timestamp))
-        logging.basicConfig(filename=log_file_path, level=logging.INFO, format='%(asctime)s %(message)s')
-
-        logging.info("Starting document regrouping")
-
-        regroup_patient_documents(args.input_dir, args.output_dir, n_jobs=args.n_jobs)
 
     elif args.subparser_name == "REPLACE":
 
