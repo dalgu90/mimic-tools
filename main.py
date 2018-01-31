@@ -7,7 +7,7 @@ import time
 from mimic.ctakes import ctakes_corpus, ctakes_to_txt
 from mimic.extract import extract_mimic_documents
 from mimic.tools import ensure_dir
-from mimic.transform import regroup_patient_documents, replace_placeholders, clean_mimic_corpus
+from mimic.transform import replace_placeholders, clean_mimic_corpus
 
 if __name__ == "__main__":
 
@@ -23,9 +23,9 @@ if __name__ == "__main__":
 
     # MIMIC placeholders replacement
     parser_replace = subparsers.add_parser('REPLACE', help="Perform pseudonymization of the documents")
-    parser_replace.add_argument("--input_dir", help="Input directory", dest="input_dir", type=str, required=True)
-    parser_replace.add_argument("--output_dir", help="Output directory", dest="output_dir", type=str, required=True)
-    parser_replace.add_argument("--list_dir", help="List directory", dest="list_dir", type=str, required=True)
+    parser_replace.add_argument("--input-dir", help="Input directory", dest="input_dir", type=str, required=True)
+    parser_replace.add_argument("--output-dir", help="Output directory", dest="output_dir", type=str, required=True)
+    parser_replace.add_argument("--list-dir", help="List directory", dest="list_dir", type=str, required=True)
 
     # MIMIC clean files
     parser_clean = subparsers.add_parser('CLEAN', help="Clean MIMIC documents")
@@ -79,12 +79,11 @@ if __name__ == "__main__":
 
         ensure_dir(target_dir)
 
-        log_file_path = os.path.join(target_dir, "replace-{}.log".format(timestamp))
-        logging.basicConfig(filename=log_file_path, level=logging.INFO, format='%(asctime)s %(message)s')
+        logging.basicConfig(stream=sys.stdout, level=logging.INFO, format='%(asctime)s %(message)s')
 
         logging.info("Starting placeholder replacing")
 
-        replace_placeholders(args.input_dir, args.output_dir, args.list_dir)
+        replace_placeholders(args.input_dir, target_dir, args.list_dir)
 
     elif args.subparser_name == "CLEAN":
 
