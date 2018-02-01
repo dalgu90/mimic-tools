@@ -5,11 +5,10 @@ import sys
 import time
 from datetime import timedelta
 
-from mimic.ctakes import ctakes_corpus, ctakes_to_txt
+from mimic.corenlp import segment_and_tokenize
 from mimic.extract import extract_mimic_documents
 from mimic.tools import ensure_dir
-from mimic.transform import replace_placeholders, clean_mimic_corpus
-from mimic.corenlp import segment_and_tokenize
+from mimic.transform import replace_placeholders
 from mimic.w2v import build_model
 
 if __name__ == "__main__":
