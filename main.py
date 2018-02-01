@@ -37,14 +37,14 @@ if __name__ == "__main__":
     # parser_clean.add_argument("-n", "--n_jobs", help="Number of processes", dest="n_jobs", type=int, default=1,
     #                           required=True)
 
-    # MIMIC document ctakes processing
-    parser_ctakes = subparsers.add_parser('CTAKES', help="Process MIMIC documents with cTAKES")
-    parser_ctakes.add_argument("--input_dir", help="Input directory", dest="input_dir", type=str, required=True)
-    parser_ctakes.add_argument("--output_dir", help="Output directory", dest="output_dir", type=str, required=True)
-    parser_ctakes.add_argument("--ctakes_dir", help="cTAKES directory", dest="ctakes_dir", type=str, required=True)
-    parser_ctakes.add_argument("--java_dir", help="Java bin directory", dest="java_dir", type=str, required=True)
-    parser_ctakes.add_argument("--resources_dir", help="Resource directory", dest="resources_dir", type=str,
-                               required=True)
+    # # MIMIC document ctakes processing
+    # parser_ctakes = subparsers.add_parser('CTAKES', help="Process MIMIC documents with cTAKES")
+    # parser_ctakes.add_argument("--input_dir", help="Input directory", dest="input_dir", type=str, required=True)
+    # parser_ctakes.add_argument("--output_dir", help="Output directory", dest="output_dir", type=str, required=True)
+    # parser_ctakes.add_argument("--ctakes_dir", help="cTAKES directory", dest="ctakes_dir", type=str, required=True)
+    # parser_ctakes.add_argument("--java_dir", help="Java bin directory", dest="java_dir", type=str, required=True)
+    # parser_ctakes.add_argument("--resources_dir", help="Resource directory", dest="resources_dir", type=str,
+    #                            required=True)
 
     # MIMIC document CoreNLP processing
     parser_corenlp = subparsers.add_parser('CORENLP', help="Process MIMIC documents with CoreNLP")
@@ -140,26 +140,26 @@ if __name__ == "__main__":
     #
     #     clean_mimic_corpus(args.input_dir, args.output_dir, n_jobs=args.n_jobs)
 
-    elif args.subparser_name == "CTAKES":
-
-        timestamp = time.strftime("%Y%m%d-%H%M%S")
-
-        target_dir = os.path.join(os.path.abspath(args.output_dir))
-
-        if os.path.isdir(target_dir):
-            raise IsADirectoryError("The output path you specified already exists")
-
-        ensure_dir(os.path.abspath(args.output_dir))
-
-        log_file_path = os.path.join(os.path.abspath(target_dir), "ctakes-{}.log".format(timestamp))
-        logging.basicConfig(filename=log_file_path, level=logging.INFO, format='%(asctime)s %(message)s')
-
-        logging.info("Processing files with cTAKES")
-        logging.info("============================")
-        logging.info("* Input directory: {}".format(os.path.abspath(args.input_dir)))
-        logging.info("* Output directory: {}".format(os.path.abspath(args.output_dir)))
-
-        ctakes_corpus(args.input_dir, args.output_dir, args.ctakes_dir, args.java_dir, args.resources_dir)
+    # elif args.subparser_name == "CTAKES":
+    #
+    #     timestamp = time.strftime("%Y%m%d-%H%M%S")
+    #
+    #     target_dir = os.path.join(os.path.abspath(args.output_dir))
+    #
+    #     if os.path.isdir(target_dir):
+    #         raise IsADirectoryError("The output path you specified already exists")
+    #
+    #     ensure_dir(os.path.abspath(args.output_dir))
+    #
+    #     log_file_path = os.path.join(os.path.abspath(target_dir), "ctakes-{}.log".format(timestamp))
+    #     logging.basicConfig(filename=log_file_path, level=logging.INFO, format='%(asctime)s %(message)s')
+    #
+    #     logging.info("Processing files with cTAKES")
+    #     logging.info("============================")
+    #     logging.info("* Input directory: {}".format(os.path.abspath(args.input_dir)))
+    #     logging.info("* Output directory: {}".format(os.path.abspath(args.output_dir)))
+    #
+    #     ctakes_corpus(args.input_dir, args.output_dir, args.ctakes_dir, args.java_dir, args.resources_dir)
 
     elif args.subparser_name == "CORENLP":
 
