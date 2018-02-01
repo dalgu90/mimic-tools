@@ -54,13 +54,13 @@ if __name__ == "__main__":
     parser_corenlp.add_argument("-n", "--n-jobs", help="Number of processes", dest="n_jobs", type=int, default=10,
                                 required=True)
 
-    # Sentence and token extraction from cTAKES files
-    parser_txt = subparsers.add_parser('CTAKES-TO-TXT', help="Sentence and token extraction from cTAKES files")
-    parser_txt.add_argument("--xml_dir", help="Input json directory", dest="xml_input_dir", type=str, required=True)
-    parser_txt.add_argument("--txt_dir", help="Input txt directory", dest="txt_input_dir", type=str, required=True)
-    parser_txt.add_argument("--output_dir", help="Output directory", dest="output_dir", type=str, required=True)
-    parser_txt.add_argument("-n", "--n_jobs", help="Number of processes", dest="n_jobs", type=int, default=1,
-                            required=True)
+    # # Sentence and token extraction from cTAKES files
+    # parser_txt = subparsers.add_parser('CTAKES-TO-TXT', help="Sentence and token extraction from cTAKES files")
+    # parser_txt.add_argument("--xml_dir", help="Input json directory", dest="xml_input_dir", type=str, required=True)
+    # parser_txt.add_argument("--txt_dir", help="Input txt directory", dest="txt_input_dir", type=str, required=True)
+    # parser_txt.add_argument("--output_dir", help="Output directory", dest="output_dir", type=str, required=True)
+    # parser_txt.add_argument("-n", "--n_jobs", help="Number of processes", dest="n_jobs", type=int, default=1,
+    #                         required=True)
 
     # BUILD ONE W2V MODEL
     parser_build_w2v = subparsers.add_parser('BUILD-W2V', help="Build one word2vec model with gensim")
@@ -179,23 +179,23 @@ if __name__ == "__main__":
 
         segment_and_tokenize(args.input_dir, target_dir, args.url, n_jobs=args.n_jobs)
 
-    elif args.subparser_name == "CTAKES-TO-TXT":
-
-        timestamp = time.strftime("%Y%m%d-%H%M%S")
-
-        target_dir = os.path.join(os.path.abspath(args.output_dir))
-
-        if os.path.isdir(target_dir):
-            raise IsADirectoryError("The output path you specified already exists")
-
-        ensure_dir(os.path.abspath(args.output_dir))
-
-        log_file_path = os.path.join(os.path.abspath(target_dir), "ctakesTXT-{}.log".format(timestamp))
-        logging.basicConfig(filename=log_file_path, level=logging.INFO, format='%(asctime)s %(message)s')
-
-        logging.info("Starting sentence and token extraction from cTAKES files")
-
-        ctakes_to_txt(args.xml_input_dir, args.txt_input_dir, args.output_dir, args.n_jobs)
+    # elif args.subparser_name == "CTAKES-TO-TXT":
+    #
+    #     timestamp = time.strftime("%Y%m%d-%H%M%S")
+    #
+    #     target_dir = os.path.join(os.path.abspath(args.output_dir))
+    #
+    #     if os.path.isdir(target_dir):
+    #         raise IsADirectoryError("The output path you specified already exists")
+    #
+    #     ensure_dir(os.path.abspath(args.output_dir))
+    #
+    #     log_file_path = os.path.join(os.path.abspath(target_dir), "ctakesTXT-{}.log".format(timestamp))
+    #     logging.basicConfig(filename=log_file_path, level=logging.INFO, format='%(asctime)s %(message)s')
+    #
+    #     logging.info("Starting sentence and token extraction from cTAKES files")
+    #
+    #     ctakes_to_txt(args.xml_input_dir, args.txt_input_dir, args.output_dir, args.n_jobs)
 
     elif args.subparser_name == "BUILD-W2V":
 
