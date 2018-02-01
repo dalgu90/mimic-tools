@@ -3,9 +3,6 @@ import os
 import random
 import re
 
-import progressbar
-from joblib import Parallel, delayed
-
 from .tools import ensure_dir, remove_abs
 
 
@@ -1073,158 +1070,158 @@ def replace_placeholders(corpus_path, output_path, list_path):
     logging.info("Done !")
 
 
-def clean_mimic_corpus(corpus_path, output_path, n_jobs=1):
-
-    document_output_path = os.path.join(os.path.abspath(output_path), "documents")
-
-    logging.info("Gathering documents...")
-
-    # Processing in three steps:
-    # 1. Gathering top level directories within the corpus directory
-    # 2. Collecting filenames in a multiprocessing way
-    # 3. Cleaning files
-
-    processing_list = list()
-
-    # Collecting filenames
-    for root, dirs, files in os.walk(os.path.abspath(corpus_path)):
-        for filename in files:
-            if re.match("^.*\.txt$", filename):
-                subdir = remove_abs(re.sub(os.path.abspath(corpus_path), "", root))
-                processing_list.append((root, filename, subdir))
-
-    logging.info("* Number of files to process: {}".format(len(processing_list)))
-
-    logging.info("Starting cleaning documents with {} processes".format(n_jobs))
-    # Cleaning files
-    Parallel(n_jobs=n_jobs)(delayed(_clean_mimic_file)(root, filename, subdir, os.path.abspath(document_output_path))
-                            for root, filename, subdir in processing_list)
-
-    logging.info("Done !")
-
-
-def stripped(s):
-
-    # _illegal_xml_chars_RE = re.compile(u'[\x00-\x08\x0b\x0c\x0e-\x1F\uD800-\uDFFF\uFFFE\uFFFF]')
-    # stripped = lambda s: "".join(i for i in s if 31 < ord(i) < 127)
-    # Remove illegal characters
-
-    return re.sub(u'[\x00-\x08\x0b\x0c\x0e-\x1F\uD800-\uDFFF\uFFFE\uFFFF]', '', s)
+# def clean_mimic_corpus(corpus_path, output_path, n_jobs=1):
+#
+#     document_output_path = os.path.join(os.path.abspath(output_path), "documents")
+#
+#     logging.info("Gathering documents...")
+#
+#     # Processing in three steps:
+#     # 1. Gathering top level directories within the corpus directory
+#     # 2. Collecting filenames in a multiprocessing way
+#     # 3. Cleaning files
+#
+#     processing_list = list()
+#
+#     # Collecting filenames
+#     for root, dirs, files in os.walk(os.path.abspath(corpus_path)):
+#         for filename in files:
+#             if re.match("^.*\.txt$", filename):
+#                 subdir = remove_abs(re.sub(os.path.abspath(corpus_path), "", root))
+#                 processing_list.append((root, filename, subdir))
+#
+#     logging.info("* Number of files to process: {}".format(len(processing_list)))
+#
+#     logging.info("Starting cleaning documents with {} processes".format(n_jobs))
+#     # Cleaning files
+#     Parallel(n_jobs=n_jobs)(delayed(_clean_mimic_file)(root, filename, subdir, os.path.abspath(document_output_path))
+#                             for root, filename, subdir in processing_list)
+#
+#     logging.info("Done !")
 
 
-def _clean_mimic_file(root, filename, subdir, output_path):
-
-    # Building source text path
-    source_text = os.path.join(root, filename)
-
-    # Building target path and target file path
-    target_path = os.path.join(os.path.abspath(output_path), subdir)
-    target_file = os.path.join(target_path, filename)
-
-    # Creating target path if necessary
-    ensure_dir(target_path)
-
-    # Variable that will old the current paragraph during the processing
-    current_par = []
-
-    with open(source_text, "r", encoding="UTF-8") as input_file:
-        with open(target_file, "w", encoding="UTF-8") as output_file:
-            for line in input_file:
-
-                # Matching an empty line, dumping current_par to file if necessary
-                if re.match("^$", line):
-                    if len(current_par) > 0:
-                        stripped_str = stripped("{}\n".format(" ".join(current_par)))
-                        output_file.write(stripped_str)
-                        current_par.clear()
-
-                    # Writing the line
-                    output_file.write("\n")
-                    continue
-
-                # Matching a line with the correct ratio
-                if _ratio_in_sentence(line) > 0.50:
-
-                    # Line with no lowercase characters are considered as titles and are written directly to the file
-                    if len(re.findall("[a-z]", line)) == 0:
-
-                        # Dumping the current_par if necessary
-                        if len(current_par) > 0:
-                            stripped_str = stripped("{}\n".format(" ".join(current_par)))
-
-                            # If there are more than 1 column in current_par, skip the line
-                            if len(re.findall(":", stripped_str)) <= 1:
-                                output_file.write(stripped_str)
-                            current_par.clear()
-
-                        # Writing the line
-                        # stripped_str = _illegal_xml_chars_RE.sub("", "{}\n".format(line.strip(" \t*\n")))
-                        stripped_str = stripped("{}\n".format(line.strip(" \t*\n")))
-                        # output_file.write("{}\n".format(line.strip(" \t*\n")))
-                        output_file.write(stripped_str)
-                        continue
-
-                    # Line that looks like a bullet point in a bullet list
-                    if re.match("^(\d+\.\s|#\d+\s|\*)", line):
-
-                        # Dumping the current_par if necessary
-                        if len(current_par) > 0:
-                            # temp_str = "{}\n".format(" ".join(current_par))
-                            # temp_str = _illegal_xml_chars_RE.sub("", "{}\n".format(" ".join(current_par)))
-                            stripped_str = stripped("{}\n".format(" ".join(current_par)))
-
-                            # If there are more than 1 column in current_par, skip the line
-                            if len(re.findall(":", stripped_str)) <= 1:
-                                output_file.write(stripped_str)
-                            current_par.clear()
-
-                        # Writing the line
-                        # stripped_str = _illegal_xml_chars_RE.sub("", line.strip(" \t*\n"))
-                        stripped_str = stripped("{}".format(line.strip("* \t\n")))
-                        # current_par.append(line.strip(" \t*\n"))
-                        current_par.append(stripped_str)
-                        continue
-
-                    # Appending the line with character stripping.
-                    # stripped_str = _illegal_xml_chars_RE.sub("", line.strip(" \t*\n"))
-                    stripped_str = stripped("{}".format(line.strip("* \t\n")))
-                    # current_par.append(line.strip("\n \t*"))
-                    current_par.append(stripped_str)
-
-                else:
-                    # Ratio is < 0.5
-                    # Dumping the current_par if necessary
-                    if len(current_par) > 0:
-                        # temp_str = ("{}\n".format(" ".join(current_par)))
-                        # temp_str = _illegal_xml_chars_RE.sub("", "{}\n".format(" ".join(current_par)))
-                        stripped_str = stripped("{}\n".format(" ".join(current_par)))
-
-                        # If there are more than 1 column in current_par, skip the line
-                        if len(re.findall(":", stripped_str)) <= 1:
-                            output_file.write(stripped_str)
-                        current_par.clear()
-
-                    # Writing a empty line
-                    output_file.write("\n")
-
-            # End of the loop, dumping the current_par if necessary
-            if len(current_par) > 0:
-                # temp_str = ("{}\n".format(" ".join(current_par)))
-                # temp_str = _illegal_xml_chars_RE.sub("", "{}\n".format(" ".join(current_par)))
-                stripped_str = stripped("{}\n".format(" ".join(current_par)))
-
-                # If there are more than 1 column in current_par, skip the line
-                if len(re.findall(":", stripped_str)) <= 1:
-                    output_file.write(stripped_str)
-                current_par.clear()
+# def stripped(s):
+#
+#     # _illegal_xml_chars_RE = re.compile(u'[\x00-\x08\x0b\x0c\x0e-\x1F\uD800-\uDFFF\uFFFE\uFFFF]')
+#     # stripped = lambda s: "".join(i for i in s if 31 < ord(i) < 127)
+#     # Remove illegal characters
+#
+#     return re.sub(u'[\x00-\x08\x0b\x0c\x0e-\x1F\uD800-\uDFFF\uFFFE\uFFFF]', '', s)
 
 
-def _ratio_in_sentence(sentence):
+# def _clean_mimic_file(root, filename, subdir, output_path):
+#
+#     # Building source text path
+#     source_text = os.path.join(root, filename)
+#
+#     # Building target path and target file path
+#     target_path = os.path.join(os.path.abspath(output_path), subdir)
+#     target_file = os.path.join(target_path, filename)
+#
+#     # Creating target path if necessary
+#     ensure_dir(target_path)
+#
+#     # Variable that will old the current paragraph during the processing
+#     current_par = []
+#
+#     with open(source_text, "r", encoding="UTF-8") as input_file:
+#         with open(target_file, "w", encoding="UTF-8") as output_file:
+#             for line in input_file:
+#
+#                 # Matching an empty line, dumping current_par to file if necessary
+#                 if re.match("^$", line):
+#                     if len(current_par) > 0:
+#                         stripped_str = stripped("{}\n".format(" ".join(current_par)))
+#                         output_file.write(stripped_str)
+#                         current_par.clear()
+#
+#                     # Writing the line
+#                     output_file.write("\n")
+#                     continue
+#
+#                 # Matching a line with the correct ratio
+#                 if _ratio_in_sentence(line) > 0.50:
+#
+#                     # Line with no lowercase characters are considered as titles and are written directly to the file
+#                     if len(re.findall("[a-z]", line)) == 0:
+#
+#                         # Dumping the current_par if necessary
+#                         if len(current_par) > 0:
+#                             stripped_str = stripped("{}\n".format(" ".join(current_par)))
+#
+#                             # If there are more than 1 column in current_par, skip the line
+#                             if len(re.findall(":", stripped_str)) <= 1:
+#                                 output_file.write(stripped_str)
+#                             current_par.clear()
+#
+#                         # Writing the line
+#                         # stripped_str = _illegal_xml_chars_RE.sub("", "{}\n".format(line.strip(" \t*\n")))
+#                         stripped_str = stripped("{}\n".format(line.strip(" \t*\n")))
+#                         # output_file.write("{}\n".format(line.strip(" \t*\n")))
+#                         output_file.write(stripped_str)
+#                         continue
+#
+#                     # Line that looks like a bullet point in a bullet list
+#                     if re.match("^(\d+\.\s|#\d+\s|\*)", line):
+#
+#                         # Dumping the current_par if necessary
+#                         if len(current_par) > 0:
+#                             # temp_str = "{}\n".format(" ".join(current_par))
+#                             # temp_str = _illegal_xml_chars_RE.sub("", "{}\n".format(" ".join(current_par)))
+#                             stripped_str = stripped("{}\n".format(" ".join(current_par)))
+#
+#                             # If there are more than 1 column in current_par, skip the line
+#                             if len(re.findall(":", stripped_str)) <= 1:
+#                                 output_file.write(stripped_str)
+#                             current_par.clear()
+#
+#                         # Writing the line
+#                         # stripped_str = _illegal_xml_chars_RE.sub("", line.strip(" \t*\n"))
+#                         stripped_str = stripped("{}".format(line.strip("* \t\n")))
+#                         # current_par.append(line.strip(" \t*\n"))
+#                         current_par.append(stripped_str)
+#                         continue
+#
+#                     # Appending the line with character stripping.
+#                     # stripped_str = _illegal_xml_chars_RE.sub("", line.strip(" \t*\n"))
+#                     stripped_str = stripped("{}".format(line.strip("* \t\n")))
+#                     # current_par.append(line.strip("\n \t*"))
+#                     current_par.append(stripped_str)
+#
+#                 else:
+#                     # Ratio is < 0.5
+#                     # Dumping the current_par if necessary
+#                     if len(current_par) > 0:
+#                         # temp_str = ("{}\n".format(" ".join(current_par)))
+#                         # temp_str = _illegal_xml_chars_RE.sub("", "{}\n".format(" ".join(current_par)))
+#                         stripped_str = stripped("{}\n".format(" ".join(current_par)))
+#
+#                         # If there are more than 1 column in current_par, skip the line
+#                         if len(re.findall(":", stripped_str)) <= 1:
+#                             output_file.write(stripped_str)
+#                         current_par.clear()
+#
+#                     # Writing a empty line
+#                     output_file.write("\n")
+#
+#             # End of the loop, dumping the current_par if necessary
+#             if len(current_par) > 0:
+#                 # temp_str = ("{}\n".format(" ".join(current_par)))
+#                 # temp_str = _illegal_xml_chars_RE.sub("", "{}\n".format(" ".join(current_par)))
+#                 stripped_str = stripped("{}\n".format(" ".join(current_par)))
+#
+#                 # If there are more than 1 column in current_par, skip the line
+#                 if len(re.findall(":", stripped_str)) <= 1:
+#                     output_file.write(stripped_str)
+#                 current_par.clear()
 
-    sentence_temp = sentence.strip(" \n\t*")
 
-    if len(sentence_temp) > 0:
-        alpha_char_nb = len(re.findall("[a-zA-Z0-9 ]", sentence))
-        return float(alpha_char_nb) / len(sentence)
-    else:
-        return 0.0
+# def _ratio_in_sentence(sentence):
+#
+#     sentence_temp = sentence.strip(" \n\t*")
+#
+#     if len(sentence_temp) > 0:
+#         alpha_char_nb = len(re.findall("[a-zA-Z0-9 ]", sentence))
+#         return float(alpha_char_nb) / len(sentence)
+#     else:
+#         return 0.0
