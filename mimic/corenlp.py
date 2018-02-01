@@ -65,51 +65,22 @@ def _process_file(source_file, target_file, corenlp_url):
 
     dismissed = [0, 0]
 
+    content = open(source_file, "r", encoding="UTF-8").read()
+
     with open(target_file, "w", encoding="UTF-8") as output_file:
-        with open(source_file, "r", encoding="UTF-8") as input_file:
+        payload = get_response(content, corenlp_url)
+        if payload:
+            for sentence in payload["sentences"]:
+                current_sentence = list()
 
-            current_chunk = list()
-            current_chunk_char_len = 0
+                for token in sentence["tokens"]:
+                    current_sentence.append(token["originalText"])
 
-            for line in input_file:
+                output_file.write("{}\n".format(" ".join(current_sentence)))
 
-                current_chunk.append(line)
-                current_chunk_char_len += len(line)
-
-                if current_chunk_char_len >= 20000:
-                    payload = get_response("".join(current_chunk), corenlp_url)
-                    current_chunk.clear()
-                    current_chunk_char_len = 0
-
-                    if payload:
-                        for sentence in payload["sentences"]:
-                            current_sentence = list()
-
-                            for token in sentence["tokens"]:
-                                current_sentence.append(token["originalText"])
-
-                            output_file.write("{}\n".format(" ".join(current_sentence)))
-
-                    else:
-                        dismissed[0] += 1
-                        dismissed[1] += current_chunk_char_len
-
-            # Last chunk
-            if current_chunk_char_len > 0:
-                payload = get_response("".join(current_chunk), corenlp_url)
-
-                if payload:
-                    for sentence in payload["sentences"]:
-                        current_sentence = list()
-
-                        for token in sentence["tokens"]:
-                            current_sentence.append(token["originalText"])
-
-                        output_file.write("{}\n".format(" ".join(current_sentence)))
-
-                else:
-                    dismissed[0] += 1
-                    dismissed[1] += current_chunk_char_len
+        else:
+            dismissed[0] += 1
+            dismissed[1] += len(content)
 
     return dismissed
 
