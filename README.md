@@ -50,13 +50,13 @@ python ~/mimic-w2v-tools/main.py REPLACE \
 To process the documents with [CoreNLP](https://stanfordnlp.github.io/CoreNLP/), you must first download and install
  CoreNLP 3.8.0 by following the instructions on the official website. You must also download Java JDK 1.8+.
  
-Launch CoreNLP server:
+* Launch CoreNLP server.
 
 ```bash
 java -mx4g -cp "*" edu.stanford.nlp.pipeline.StanfordCoreNLPServer -port 9000 -timeout 15000 -quiet
 ``` 
 
-Launch document processing
+* Launch document processing.
 
 ```bash
 python ~/mimic-w2v-tools/main.py CORENLP \
