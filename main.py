@@ -29,22 +29,6 @@ if __name__ == "__main__":
     parser_replace.add_argument("--output-dir", help="Output directory", dest="output_dir", type=str, required=True)
     parser_replace.add_argument("--list-dir", help="List directory", dest="list_dir", type=str, required=True)
 
-    # # MIMIC clean files
-    # parser_clean = subparsers.add_parser('CLEAN', help="Clean MIMIC documents")
-    # parser_clean.add_argument("--input_dir", help="Input directory", dest="input_dir", type=str, required=True)
-    # parser_clean.add_argument("--output_dir", help="Output directory", dest="output_dir", type=str, required=True)
-    # parser_clean.add_argument("-n", "--n_jobs", help="Number of processes", dest="n_jobs", type=int, default=1,
-    #                           required=True)
-
-    # # MIMIC document ctakes processing
-    # parser_ctakes = subparsers.add_parser('CTAKES', help="Process MIMIC documents with cTAKES")
-    # parser_ctakes.add_argument("--input_dir", help="Input directory", dest="input_dir", type=str, required=True)
-    # parser_ctakes.add_argument("--output_dir", help="Output directory", dest="output_dir", type=str, required=True)
-    # parser_ctakes.add_argument("--ctakes_dir", help="cTAKES directory", dest="ctakes_dir", type=str, required=True)
-    # parser_ctakes.add_argument("--java_dir", help="Java bin directory", dest="java_dir", type=str, required=True)
-    # parser_ctakes.add_argument("--resources_dir", help="Resource directory", dest="resources_dir", type=str,
-    #                            required=True)
-
     # MIMIC document CoreNLP processing
     parser_corenlp = subparsers.add_parser('CORENLP', help="Process MIMIC documents with CoreNLP")
     parser_corenlp.add_argument("--input-dir", help="Input directory", dest="input_dir", type=str, required=True)
@@ -53,21 +37,12 @@ if __name__ == "__main__":
     parser_corenlp.add_argument("-n", "--n-jobs", help="Number of processes", dest="n_jobs", type=int, default=10,
                                 required=True)
 
-    # # Sentence and token extraction from cTAKES files
-    # parser_txt = subparsers.add_parser('CTAKES-TO-TXT', help="Sentence and token extraction from cTAKES files")
-    # parser_txt.add_argument("--xml_dir", help="Input json directory", dest="xml_input_dir", type=str, required=True)
-    # parser_txt.add_argument("--txt_dir", help="Input txt directory", dest="txt_input_dir", type=str, required=True)
-    # parser_txt.add_argument("--output_dir", help="Output directory", dest="output_dir", type=str, required=True)
-    # parser_txt.add_argument("-n", "--n_jobs", help="Number of processes", dest="n_jobs", type=int, default=1,
-    #                         required=True)
-
     # BUILD ONE W2V MODEL
     parser_build_w2v = subparsers.add_parser('BUILD-W2V', help="Build one word2vec model with gensim")
     parser_build_w2v.add_argument("--corpus-dir", help="Input corpus directory", dest="corpus_dir", type=str,
                                   required=True)
     parser_build_w2v.add_argument("--output-dir", help="Output directory where a subdirectory containing the mode will"
                                                        " be created", dest="output_dir", type=str, required=True)
-
     parser_build_w2v.add_argument("--size", help="Vector size (default: 100)", dest="size", type=int, default=100)
     parser_build_w2v.add_argument("--window", help="Window size (default: 5)", dest="window", type=int, default=5)
     parser_build_w2v.add_argument("--min-count", help="Min count (default: 5)", dest="min_count", type=int, default=5)
@@ -79,7 +54,6 @@ if __name__ == "__main__":
                                   type=float, default=0.001)
     parser_build_w2v.add_argument("--alpha", help="Initial learning rate (default 0.025)", dest="alpha", type=float,
                                   default=0.025)
-
     group_type = parser_build_w2v.add_mutually_exclusive_group(required=True)
     group_type.add_argument('--skip-gram', action='store_true', dest="skip_gram")
     group_type.add_argument('--cbow', action='store_true')
@@ -102,7 +76,13 @@ if __name__ == "__main__":
 
         logging.info("Starting document extraction from mimic-iii database")
 
+        start = time.time()
+
         extract_mimic_documents(args.url, target_dir)
+
+        start = time.time()
+
+        logging.info("Done ! (Time elapsed: {})".format(timedelta(seconds=round(end - start))))
 
     elif args.subparser_name == "REPLACE":
 
@@ -119,46 +99,11 @@ if __name__ == "__main__":
 
         logging.info("Starting placeholder replacing")
 
+        start = time.time()
+
         replace_placeholders(args.input_dir, target_dir, args.list_dir)
 
-    # elif args.subparser_name == "CLEAN":
-    #
-    #     timestamp = time.strftime("%Y%m%d-%H%M%S")
-    #
-    #     target_dir = os.path.join(os.path.abspath(args.output_dir))
-    #
-    #     if os.path.isdir(target_dir):
-    #         raise IsADirectoryError("The output path you specified already exists")
-    #
-    #     ensure_dir(target_dir)
-    #
-    #     log_file_path = os.path.join(target_dir, "clean-{}.log".format(timestamp))
-    #     logging.basicConfig(filename=log_file_path, level=logging.INFO, format='%(asctime)s %(message)s')
-    #
-    #     logging.info("Starting corpus cleaning")
-    #
-    #     clean_mimic_corpus(args.input_dir, args.output_dir, n_jobs=args.n_jobs)
-
-    # elif args.subparser_name == "CTAKES":
-    #
-    #     timestamp = time.strftime("%Y%m%d-%H%M%S")
-    #
-    #     target_dir = os.path.join(os.path.abspath(args.output_dir))
-    #
-    #     if os.path.isdir(target_dir):
-    #         raise IsADirectoryError("The output path you specified already exists")
-    #
-    #     ensure_dir(os.path.abspath(args.output_dir))
-    #
-    #     log_file_path = os.path.join(os.path.abspath(target_dir), "ctakes-{}.log".format(timestamp))
-    #     logging.basicConfig(filename=log_file_path, level=logging.INFO, format='%(asctime)s %(message)s')
-    #
-    #     logging.info("Processing files with cTAKES")
-    #     logging.info("============================")
-    #     logging.info("* Input directory: {}".format(os.path.abspath(args.input_dir)))
-    #     logging.info("* Output directory: {}".format(os.path.abspath(args.output_dir)))
-    #
-    #     ctakes_corpus(args.input_dir, args.output_dir, args.ctakes_dir, args.java_dir, args.resources_dir)
+        logging.info("Done ! (Time elapsed: {})".format(timedelta(seconds=round(end - start))))
 
     elif args.subparser_name == "CORENLP":
 
@@ -176,25 +121,13 @@ if __name__ == "__main__":
         logging.info("* Input directory: {}".format(os.path.abspath(args.input_dir)))
         logging.info("* Output directory: {}".format(os.path.abspath(args.output_dir)))
 
+        start = time.time()
+
         segment_and_tokenize(args.input_dir, target_dir, args.url, n_jobs=args.n_jobs)
 
-    # elif args.subparser_name == "CTAKES-TO-TXT":
-    #
-    #     timestamp = time.strftime("%Y%m%d-%H%M%S")
-    #
-    #     target_dir = os.path.join(os.path.abspath(args.output_dir))
-    #
-    #     if os.path.isdir(target_dir):
-    #         raise IsADirectoryError("The output path you specified already exists")
-    #
-    #     ensure_dir(os.path.abspath(args.output_dir))
-    #
-    #     log_file_path = os.path.join(os.path.abspath(target_dir), "ctakesTXT-{}.log".format(timestamp))
-    #     logging.basicConfig(filename=log_file_path, level=logging.INFO, format='%(asctime)s %(message)s')
-    #
-    #     logging.info("Starting sentence and token extraction from cTAKES files")
-    #
-    #     ctakes_to_txt(args.xml_input_dir, args.txt_input_dir, args.output_dir, args.n_jobs)
+        end = time.time()
+
+        logging.info("Done ! (Time elapsed: {})".format(timedelta(seconds=round(end - start))))
 
     elif args.subparser_name == "BUILD-W2V":
 
