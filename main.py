@@ -80,7 +80,7 @@ if __name__ == "__main__":
 
         extract_mimic_documents(args.url, target_dir)
 
-        start = time.time()
+        end = time.time()
 
         logging.info("Done ! (Time elapsed: {})".format(timedelta(seconds=round(end - start))))
 
@@ -103,6 +103,8 @@ if __name__ == "__main__":
 
         replace_placeholders(args.input_dir, target_dir, args.list_dir)
 
+        end = time.time()
+        
         logging.info("Done ! (Time elapsed: {})".format(timedelta(seconds=round(end - start))))
 
     elif args.subparser_name == "CORENLP":
