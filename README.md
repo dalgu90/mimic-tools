@@ -29,7 +29,7 @@ Run the following command to extract the documents from the database. Adjust the
 ```bash
 python ~/mimic-w2v-tools/main.py EXTRACT \
     --url postgresql://mimic@localhost:5432/mimic \
-    --output_dir ~/mimicdump/01_extraction
+    --output-dir ~/mimicdump/01_extraction
 ```
 
 ### 2.2 - Pseudonymization
@@ -40,9 +40,9 @@ repository. Further information concerning the origins of the lists is available
 
 ```bash
 python ~/mimic-w2v-tools/main.py REPLACE \
-    --input_dir ~/mimicdump/01_extraction \
-    --output_dir ~/mimicdump/02_replace \
-    --list_dir ~/w2v-tools/lists
+    --input-dir ~/mimicdump/01_extraction \
+    --output-dir ~/mimicdump/02_replace \
+    --list-dir ~/w2v-tools/lists
 ```
 
 ### 2.3 - Process documents with CoreNLP
@@ -60,8 +60,8 @@ java -mx4g -cp "*" edu.stanford.nlp.pipeline.StanfordCoreNLPServer -port 9000 -t
 
 ```bash
 python ~/mimic-w2v-tools/main.py CORENLP \
-    --input_dir ~/mimicdump/02_replace \
-    --output_dir ~/mimicdump/03_corenlp \
+    --input-dir ~/mimicdump/02_replace \
+    --output-dir ~/mimicdump/03_corenlp \
     --url http://localhost:9000
     [-n 10]
 ```
