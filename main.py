@@ -4,6 +4,7 @@ import os
 import sys
 import time
 from datetime import timedelta
+import random  # Added by dalgu90
 
 from mimic.corenlp import segment_and_tokenize
 from mimic.extract import extract_mimic_documents
@@ -28,6 +29,7 @@ if __name__ == "__main__":
     parser_replace.add_argument("--input-dir", help="Input directory", dest="input_dir", type=str, required=True)
     parser_replace.add_argument("--output-dir", help="Output directory", dest="output_dir", type=str, required=True)
     parser_replace.add_argument("--list-dir", help="List directory", dest="list_dir", type=str, required=True)
+    parser_replace.add_argument("--seed", help="Python random seed", dest="seed", type=int, required=False, default=777)
 
     # MIMIC document CoreNLP processing
     parser_corenlp = subparsers.add_parser('CORENLP', help="Process MIMIC documents with CoreNLP")
@@ -101,10 +103,11 @@ if __name__ == "__main__":
 
         start = time.time()
 
+        random.seed(args.seed)  # Added by dalgu90
         replace_placeholders(args.input_dir, target_dir, args.list_dir)
 
         end = time.time()
-        
+
         logging.info("Done ! (Time elapsed: {})".format(timedelta(seconds=round(end - start))))
 
     elif args.subparser_name == "CORENLP":
