@@ -915,7 +915,8 @@ def replace_placeholders(corpus_path, output_path, list_path):
             if re.match("^$", line):
                 continue
             temp_set.add(line.rstrip())
-        list_sub["holidays"] = list(temp_set)
+        list_sub["holidays"] = sorted(list(temp_set))  # Changed by dalgu90
+#         list_sub["holidays"] = list(temp_set)
 
     logging.info("* Holiday names: {} [{} ...]".format(
         len(list_sub["holidays"]),
@@ -1030,7 +1031,7 @@ def replace_placeholders(corpus_path, output_path, list_path):
     logging.info("Replacing placeholders. This can take a long time...")
 
     for root, dirs, files in os.walk(os.path.abspath(corpus_path)):
-        for filename in files:
+        for filename in sorted(files):
             if re.match(".*\.txt", filename):
 
                 source_file = os.path.join(root, filename)
